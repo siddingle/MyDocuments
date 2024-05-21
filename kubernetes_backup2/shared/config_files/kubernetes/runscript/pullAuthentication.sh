@@ -1,0 +1,13 @@
+#!/bin/bash
+
+service=authenticationservice
+port=8181
+buildn="$1"
+
+if [ $buildn -gt 0 ]
+then
+   echo "Copy $Module $FileName $buildn"
+   ./pullrunimage.sh $service $port $buildn
+
+fi
+

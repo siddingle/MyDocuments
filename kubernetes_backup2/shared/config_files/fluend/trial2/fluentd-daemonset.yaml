@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: fluentd
+  namespace: logging
+  labels:
+    app: fluentd
+    kubernetes.io/cluster-service: "true"
+spec:
+  selector:
+    matchLabels:
+      app: fluentd
+      kubernetes.io/cluster-service: "true"
+  template:
+    metadata:
+      labels:
+        app: fluentd
+        kubernetes.io/cluster-service: "true"
+    spec:
+      serviceAccount: fluentd
+      containers:
+      - name: fluentd
+        image: fluent/fluentd-kubernetes-daemonset:v1.16.3-debian-elasticsearch8-1.0
+        env:
+          - name:  FLUENT_ELASTICSEARCH_HOST
+            value: "172.16.100.20"
+          - name:  FLUENT_ELASTICSEARCH_PORT
+            value: "9200"
+          - name: FLUENT_ELASTICSEARCH_SCHEME
+            value: "http"
+          - name: FLUENT_ELASTICSEARCH_USER
+            value: "elastic"
+          - name: FLUENT_ELASTICSEARCH_PASSWORD
+            value: "Meeting#4321"
+          - name: FLUENT_ELASTICSEARCH_SED_DISABLE
+            value: "true"
+          - name: FLUENTD_SYSTEMD_CONF
+            value: disable
+        resources:
+          limits:
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 200Mi
+        volumeMounts:
+        - name: varlog
+          mountPath: /var/logs
+        - name: varlibdockercontainers
+          mountPath: /logs
+          readOnly: true
+        - name: fluentdconfig
+          mountPath: /fluentd/etc/fluent.conf
+          subPath: fluent.conf
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: varlog
+        hostPath:
+          path: /workspace/shared/startuplogs
+      - name: varlibdockercontainers
+        hostPath:
+          path: /logs
+      - name: fluentdconfig
+        configMap:
+          name: fluentdconf

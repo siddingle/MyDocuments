@@ -1,0 +1,5 @@
+YAML -YET ANOTHER MARKUP LANGUAGE//YAML AINT MARKUP LANGUAGE
+Its a data format use to exchange data  which is similar to xml json
+we can store data not commands 
+
+Serialization-- Transmission from object in stream line so we can store its states(YAML file).

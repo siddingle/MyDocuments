@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: es-pv
+spec:
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  capacity:
+    storage: 3Gi
+  volumeMode: Filesystem
+  nfs:
+    path: /workspace/shared/
+    server: 192.168.150.16   # NFS server IP address
+  storageClassName: standard
+  mountOptions:
+    - hard
+    - nfsvers=4.1

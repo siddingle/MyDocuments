@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-deployment
+  labels:
+    app: my-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+      - name: my-container
+        image: nexus.mea-emigrate.com:9890/nexus/foreignrecruiterservice:154
+        ports:
+        - containerPort: 9089
+        volumeMounts:
+        - name: data-volume
+          mountPath: "/emigrate"
+        resources:
+          limits:
+            cpu: "500m"  # 500 milliCPU (0.5 CPU)
+          requests:
+            cpu: "100m"  # 100 milliCPU (0.1 CPU)
+      volumes:
+      - name: data-volume
+        hostPath:
+          path: "/workspace"
+      imagePullSecrets:
+      - name: emigrate

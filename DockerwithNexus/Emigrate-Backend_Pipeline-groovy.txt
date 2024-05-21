@@ -1,0 +1,101 @@
+pipeline {
+      agent any
+	  tools {
+        maven 'Maven 363'
+    }
+     stages{
+	    stage("Code"){
+		   steps {
+		       deleteDir()
+		    echo "Cloning the code"
+			  git branch: 'UAT-4FEB-SECURITY_FIXES',
+              credentialsId: '182877e8-7386-4f6e-bf8b-1e65f5fb9264',
+              url: 'https://apps.trigyn.com/gitlab/emigrate/emigratebackend.git'
+		   
+		   }
+		}
+		
+		
+		
+		
+		stage('Update pom.xml') {
+            steps {
+                script {
+                    // Define the new version value
+                    def newVersion = "1.0.${BUILD_NUMBER}"
+
+                    // Update the pom.xml file using sed
+                    sh "sed -i 's|<version>0.0.1-SNAPSHOT</version>|<version>${newVersion}</version>|' ${ServiceName}/pom.xml"
+                }
+            }
+        }
+		
+		
+		
+		
+		
+		
+		stage("build"){
+		   steps {
+		    echo "Buidling the code"
+		     sh "mvn -f ${ServiceName}/pom.xml clean install -DskipTests"
+		   }		
+		}
+	    stage("Archive Artifacts"){
+	        steps {
+	            echo "Archiving Artifacts"
+	           
+	           //   archiveArtifacts artifacts: 'SvrJsbJarFdr/AuthenticationService-0.0.1-SNAPSHOT.jar, SvrJsbJarFdr/services_UAT.properties', fingerprint: true
+	                archiveArtifacts artifacts: 'SvrJsbJarFdr/*.jar, SvrJsbJarFdr/services_UAT.properties', fingerprint: true
+	 
+	                   echo "${BUILD_NUMBER}"
+	            
+	        }
+	    }	
+		
+		stage("Push to Nexus"){
+		   steps {
+		    echo "Pushing the code"
+		    script {
+                //storing with 0.0.1-SNAPSHOT   //nexusArtifactUploader artifacts: [[artifactId: '${ServiceName}', classifier: '${BUILD_NUMBER}', file: '${JENKINS_HOME}/jobs/Pipeline/builds/${BUILD_NUMBER}/archive/SvrJsbJarFdr/${ServiceName}-0.0.1-SNAPSHOT.jar', type: 'jar']], credentialsId: '70f0d661-f381-460a-b18a-cffaa01ad2bc', groupId: 'com.gov.emigrate', nexusUrl: '${NEXUS_URL}', nexusVersion: 'nexus3', protocol: 'http', repository: 'emigrate-services-snapshot-repo', version: '0.0.1-SNAPSHOT'
+                //storing with 1.0.currentbuildnumber-SNAPSHOT     // nexusArtifactUploader artifacts: [[artifactId: '${ServiceName}', classifier: '${BUILD_NUMBER}', file: '${JENKINS_HOME}/jobs/Pipeline/builds/${BUILD_NUMBER}/archive/SvrJsbJarFdr/${ServiceName}-1.0.${BUILD_NUMBER}.jar', type: 'jar']], credentialsId: '70f0d661-f381-460a-b18a-cffaa01ad2bc', groupId: 'com.gov.emigrate', nexusUrl: '${NEXUS_URL}', nexusVersion: 'nexus3', protocol: 'http', repository: 'emigrate-services-snapshot-repo', version: '1.0.${BUILD_NUMBER}-SNAPSHOT'
+                   nexusArtifactUploader artifacts: [[artifactId: '${ServiceName}', classifier: '', file: '${JENKINS_HOME}/jobs/${JOB_NAME}/builds/${BUILD_NUMBER}/archive/SvrJsbJarFdr/${ServiceName}-1.0.${BUILD_NUMBER}.jar', type: 'jar']], credentialsId: '70f0d661-f381-460a-b18a-cffaa01ad2bc', groupId: 'com.gov.emigrate.master', nexusUrl: '${NEXUS_URL}', nexusVersion: 'nexus3', protocol: 'http', repository: 'emigrate-services-release-repo', version: '1.0.${BUILD_NUMBER}'    
+                  
+                   
+                    }
+		   
+		   }	
+		}
+		stage("Creating Docker Image and Push to Nexus"){
+		   steps {
+		  sh "sleep 10"     
+		    echo "Deploying the container"
+		  sh  "curl -u '${NEXUS_USERNAME}:${NEXUS_PASSWORD}' -L -X GET 'http://${NEXUS_URL}/service/rest/v1/search/assets/download?repository=emigrate-services-release-repo&maven.groupId=com.gov.emigrate.master&maven.artifactId=${ServiceName}&maven.baseVersion=1.0.${BUILD_NUMBER}&maven.extension=jar&sort=version'  --output ${ServiceName}-0.0.1-SNAPSHOT.jar >> temp.txt"
+		  sh "cp ${ServiceName}/Dockerfile ."
+		  sh "mv services_K8S.properties  services_UAT.properties"
+		  sh "cp GatewayService/src/main/resources/application_UAT.properties ."
+		  script {
+		           def serviceName = params.ServiceName
+
+                    // Convert the service name to lowercase
+                    def lowerServiceName = serviceName.toLowerCase()
+                
+
+                    // Print the result in Groovy
+                    println "Original Service Name: ${serviceName}"
+                    println "Lowercase Service Name: ${lowerServiceName}"
+                    
+		 
+	
+		  sh """
+		  docker build -f ./Dockerfile  -t ${lowerServiceName}:${BUILD_NUMBER} --build-arg APP_HOST_IP_ADDRESS=192.168.150.16 --build-arg BUILD_ID=${BUILD_NUMBER} --build-arg ENVIRONMENT=UAT  --build-arg APPLICATION_PROPERTIES=application_UAT.properties ./ || exit 1;
+		  docker tag ${lowerServiceName}:${BUILD_NUMBER} ${HTTP_PROXY_NEXUS_HOST}/${lowerServiceName}:${BUILD_NUMBER}
+		  docker push ${HTTP_PROXY_NEXUS_HOST}/${lowerServiceName}:${BUILD_NUMBER}
+		  docker rm ${lowerServiceName}:${BUILD_NUMBER}
+		  docker rm ${HTTP_PROXY_NEXUS_HOST}/${lowerServiceName}:${BUILD_NUMBER}
+		  """
+	}
+	}
+		}				
+	 } 
+}

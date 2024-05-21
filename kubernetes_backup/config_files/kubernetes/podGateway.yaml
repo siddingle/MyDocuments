@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gatewayservice
+  labels:
+    app: gatewayservice
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gatewayservice
+  template:
+    metadata:
+      labels:
+        app: gatewayservice
+    spec:
+      containers:
+      - name: gatewayservice
+        image: localhost:5000/gatewayservice:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+

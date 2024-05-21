@@ -1,0 +1,124 @@
+sudo apt update      it will update the instances
+sudo apt install ansible
+cd .ssh       create directory
+vim folder name   create folder where we can store key 
+esc :wq       save exit
+ls      to check vim created folder name
+pwd      to check directory path
+go back to home/ubentu ----- bu using cd command 
+sudo ssh -i ~/.ssh/ansible_key(vim folder name where key has been stored) ubuntu@ip Address  
+
+now u have been entred from one server to another which is called secured shell.
+
+cat /etc/ansible/hosts     inventory file is always on this directory
+u can create inventory in another directory
+
+creating inventory path
+mkdir ansible
+cd ansible/
+vim hosts
+
+[servers]
+server1 ansible_host=ip address
+server2 ansible_host=ip address
+server3 ansible_host=ip address
+
+[all:vars]
+ansible_python_interpreter=/usr/bin/python3
+
+ansible-inventory --list -y -i /path where inventory has been saved
+it will give the details which has been stored in invenotry
+
+to access the private key give permission first by going main path
+ubuntu@ip-172-31-92-186:~$      eg
+chmod 700 ~/.ssh
+chmod 700 ~/.ssh/ansible_key2(key has been stored)
+
+
+ansible all -m ping -i /path where inventory has been saved --private-key= ~/path where ansible key has been stored   
+
+ansible all -a "free -h" -i /path where inventory has been saved --private-key= ~/path where ansible key has been stored  
+eg (ansible all -a "free -h"  -i /home/ubuntu/ansible/host --private-key=~/.ssh/ansible_key2) which i created
+
+
+
+
+
+Playbook
+creating file
+
+
+                          create a playbooks directory 
+ vim create_file.yml      create a yml file in a directory
+---    it strts yml file
+-      strt list
+become:true    is nothing but as root user your working
+
+---                  
+- name: this playbook will create a file
+  hosts: all
+  become: true
+  tasks:
+  - name: create a file
+    file:
+     path: /home/ubuntu/myFile.txt
+     state: touch
+
+ansible-playbook create_file.yml -i /home/ubentu/ansible/host  --private-key=~/.ssh/ansible_key2
+
+
+creating user
+create create_user.yml file 
+
+
+---
+- name: this playbook will creating a user
+  hosts: all
+  become: true
+  tasks:
+  - name: create a user SiddharthIngle
+    user: name=SiddharthIngle
+
+ansible-playbook create_user.yml -i /home/ubentu/ansible/host  --private-key=~/.ssh/ansible_key2
+
+cat /etc/passwd        check the user name on the different server
+
+
+installing docker
+create install_docker.yml file
+
+
+---
+- name: this playbook will install docker
+  hosts: all
+  become: true
+  tasks:
+  - name: add docker GPT apt key
+    apt_key:
+     url: https://download.docker.com/linux/ubuntu/gpg
+     state: present
+
+  - name: Add Docker repository
+    apt_repository:
+     repo: deb https://download.docker.com/linux/ubuntu focal stable
+     state: present
+
+  - name: Install Docker
+    apt:
+     name: docker-ce
+     state: latest
+
+
+
+ansible-playbook install_docker.yml -i /home/ubentu/ansible/host  --private-key=~/.ssh/ansible_key2
+
+
+
+
+
+
+
+
+
+
+

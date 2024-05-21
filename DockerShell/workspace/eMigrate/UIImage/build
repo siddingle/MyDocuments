@@ -1,0 +1,4 @@
+#/bin/bash
+
+docker build -t emigrate-ui .
+docker run -dit --name emigrate-ui -p 18080:80 emigrate-ui

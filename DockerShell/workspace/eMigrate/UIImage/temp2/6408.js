@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunke_migrate=self.webpackChunke_migrate||[]).push([[6408],{6408:(t,u,s)=>{s.r(u),s.d(u,{ResourcesModule:()=>c});var a=s(6895),o=s(1571);let c=(()=>{var e;class r{}return(e=r).\u0275fac=function(n){return new(n||e)},e.\u0275mod=o.oAB({type:e}),e.\u0275inj=o.cJS({imports:[a.ez]}),r})()}}]);

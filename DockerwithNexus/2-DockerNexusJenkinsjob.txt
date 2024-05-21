@@ -1,0 +1,112 @@
+
+echo "ServiceName:${ServiceName}"
+echo "BuildId:${BuildId}"
+echo "workspace:$WORKSPACE"
+echo "JenkinsHome:$JENKINS_HOME"
+
+
+cp $WORKSPACE/../EMigrate-${ServiceName}/${ServiceName}/Dockerfile ./
+
+
+cp $WORKSPACE/../EMigrate-${ServiceName}/services*.properties      ./
+cp $WORKSPACE/../EMigrate-${ServiceName}/${ServiceName}/src/main/resources/application*.properties ./ 2>/dev/null || :
+cp $WORKSPACE/../EMigrate-${ServiceName}/${ServiceName}/src/main/resources/application*.yml ./ 2>/dev/null || :
+
+
+
+
+
+
+
+#HTTP_PROXY_NEXUS_HOST=192.168.150.8:9081/nexus
+#NEXUS_URL=http://192.168.150.8:8081/nexus
+
+
+#LOWER_SERVICE_NAME="${ServiceName},,}"
+LOWER_SERVICE_NAME=$(echo "$ServiceName" | tr '[:upper:]' '[:lower:]')
+
+#echo "ModuleName:${ModuleName}"
+echo "ServiceName:${ServiceName}"
+echo "BuildId:${BuildId}"
+echo "Environment:${Environment}"
+echo "workspace:$WORKSPACE"
+echo "JenkinsHome:$JENKINS_HOME"
+echo "HTTP_PROXY_NEXUS_HOST:${HTTP_PROXY_NEXUS_HOST}"
+echo "NEXUS_URL:${NEXUS_URL}"
+
+
+echo "LOWER_SERVICE_NAME:${LOWER_SERVICE_NAME}"
+
+
+echo "Docker login"
+#-u ${NEXUS_USERNAME} -p ${NEXUS_PASSWORD}
+# --password-stdin ${NEXUS_PASSWORD}
+docker login http://${HTTP_PROXY_NEXUS_HOST}/repository/emigrate-docker-hosted-repo/ -u ${NEXUS_USERNAME} --password-stdin <<< "${NEXUS_PASSWORD}"
+
+
+echo "Getting Artifacts....."
+# --password-stdin ${NEXUS_PASSWORD}
+#curl -u ${NEXUS_USERNAME}: <<< "${NEXUS_PASSWORD}" -L -X GET "http://${NEXUS_URL}/service/rest/v1/search/assets/download?repository=emigrate-services-snapshot-repo&maven.groupId=com.gov.emigrate&maven.artifactId=${ServiceName}&maven.baseVersion=0.0.1-SNAPSHOT&maven.extension=jar&sort=version&maven.classifier=${BuildId}"  --output ${ServiceName}-0.0.1-SNAPSHOT.jar
+
+
+ echo "Getting Artifacts from Nexus"
+ curl -u "${NEXUS_USERNAME}:${NEXUS_PASSWORD}" -L -X GET "http://${NEXUS_URL}/service/rest/v1/search/assets/download?repository=emigrate-services-snapshot-repo&maven.groupId=com.gov.emigrate&maven.artifactId=${ServiceName}&maven.baseVersion=0.0.1-SNAPSHOT&maven.extension=jar&sort=version&maven.classifier=${BuildId}"  --output ${ServiceName}-0.0.1-SNAPSHOT.jar >> temp.txt
+
+
+#curl -H "X-NuGet-ApiKey: f97e8d5c-1e57-3dc8-b2be-1897b3757145" -L -X GET "http://${NEXUS_URL}/service/rest/v1/search/assets/download?repository=emigrate-services-snapshot-repo&maven.groupId=com.gov.emigrate&maven.artifactId=${ServiceName}&maven.baseVersion=0.0.1-SNAPSHOT&maven.extension=jar&sort=version&maven.classifier=${BuildId}" --output ${ServiceName}-0.0.1-SNAPSHOT.jar
+
+echo "Building Docker Image"
+# docker build -f ./Dockerfile  -t ${LOWER_SERVICE_NAME}:${BuildId} --build-arg APP_HOST_IP_ADDRESS=192.168.150.9 --build-arg BUILD_ID=${BuildId} --build-arg ENVIRONMENT=${Environment} ./ || exit 1;
+# APP_HOST_IP_ADDRESS
+if [ ${Environment} == "UAT-DOCKER" ]
+then
+    # 192.168.150.9
+    # APP_HOST_IP_ADDRESS=192.168.150.9
+#    sed -i 's|'https://mea.trigyn.com/emigrateUATAPI'|'http://192.168.150.9:8080/api'|g' ./services_UAT.properties
+#    sed -i 's|'https://mea.trigyn.com/emigrateUAT'|'http://192.168.150.9:18080'|g' ./services_UAT.properties
+     sed -i 's|'192.168.150.10:3306'|'10.40.10.5:3306'|g' ./services_SIT.properties
+     mv services_SIT.properties  services_UAT.properties
+    #cat ./services_UAT.properties
+	docker build -f ./Dockerfile  -t ${LOWER_SERVICE_NAME}:${BuildId} --build-arg APP_HOST_IP_ADDRESS=192.168.150.9 --build-arg BUILD_ID=${BuildId} --build-arg ENVIRONMENT=UAT --build-arg APPLICATION_PROPERTIES=application_UAT.properties ./ || exit 1;
+    
+elif [ ${Environment} == "UAT-DOCKER-KUBE" ]
+then
+    # 192.168.150.16 KUBE-SERVER
+    # APP_HOST_IP_ADDRESS=192.168.150.16 MasterNode
+     mv services_K8S.properties  services_UAT.properties
+	docker build -f ./Dockerfile  -t ${LOWER_SERVICE_NAME}:${BuildId} --build-arg APP_HOST_IP_ADDRESS=192.168.150.16 --build-arg BUILD_ID=${BuildId} --build-arg ENVIRONMENT=UAT  --build-arg APPLICATION_PROPERTIES=application_UAT.properties ./ || exit 1;   
+    
+elif [ ${Environment} == "UAT-DOCKER-KUBE-PROD" ]
+then
+    # 192.168.150.16 KUBE-SERVER
+    # APP_HOST_IP_ADDRESS=192.168.150.16 MasterNode
+#     sed -i 's|'192.168.150.19:3306'|'10.40.10.5:3306'|g' ./services_UAT_k8s.properties
+#     sed -i 's|'192.168.150.16'|'172.16.100.26'|g' ./services_UAT_k8s.properties
+     mv services_UATK8SPROD.properties  services_UAT.properties
+    #cat ./services_UAT_k8s.properties
+	docker build -f ./Dockerfile  -t ${LOWER_SERVICE_NAME}:${BuildId} --build-arg APP_HOST_IP_ADDRESS=192.168.150.16 --build-arg BUILD_ID=${BuildId} --build-arg ENVIRONMENT=UAT  --build-arg APPLICATION_PROPERTIES=application_UAT.properties ./ || exit 1;       
+
+elif [ ${Environment} == "UAT" ] 
+then
+    # 192.168.150.5
+	docker build -f ./Dockerfile  -t ${LOWER_SERVICE_NAME}:${BuildId} --build-arg APP_HOST_IP_ADDRESS=127.0.0.1 --build-arg BUILD_ID=${BuildId} --build-arg ENVIRONMENT=${Environment} ./ || exit 1;
+else
+	docker build -f ./Dockerfile  -t ${LOWER_SERVICE_NAME}:${BuildId} --build-arg APP_HOST_IP_ADDRESS=127.0.0.1 --build-arg BUILD_ID=${BuildId} --build-arg ENVIRONMENT=${Environment} ./ || exit 1;
+fi
+
+echo "Tag Docker Image"
+docker tag ${LOWER_SERVICE_NAME}:${BuildId} ${HTTP_PROXY_NEXUS_HOST}/${LOWER_SERVICE_NAME}:${BuildId} ;
+
+echo "Push the Docker Images to Nexus"
+docker push ${HTTP_PROXY_NEXUS_HOST}/${LOWER_SERVICE_NAME}:${BuildId}
+
+echo "Delete the build docker images..."
+docker image rm ${HTTP_PROXY_NEXUS_HOST}/${LOWER_SERVICE_NAME}:${BuildId}
+docker image rm ${LOWER_SERVICE_NAME}:${BuildId}
+
+
+
+
+
+
+

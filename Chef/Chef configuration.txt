@@ -1,0 +1,70 @@
+xInstall ubuntu fo windows first
+
+Getting resources of chef development kit
+
+ wget https://packages.chef.io/files/stable/chefdk/4.13.3/ubuntu/18.04/chefdk_4.13.3-1_amd64.deb
+
+Installing chefdk
+sudo dpkg -i chefdk_*.deb
+
+to verify chef
+chef verify
+ if something get failed
+sudo chef verify
+
+creating repository
+sudo chef generate repo chef_repo
+
+ls command to see what are files present
+
+cd cookbooks
+
+It will start generation cookbook
+
+ sudo chef generate cookbook tomcat_stack
+ls
+cd tomcat_stack
+ls
+cd recipes
+ls
+sudo vim default.rb
+insert the things
+
+ execute "sudo update-upgrade" do
+  command "sudo apt-get update && sudo apt-get upgrade -y"
+  action: run
+  end
+
+
+save info :wq
+
+goto the home directory
+
+accessing the git
+
+ git config --global user.name sid
+ git config --global user.email siddingle@gmail.com
+cd ~/.chef
+git init        
+sudo echo ".chef" > .gitignore
+git status
+add and commit
+
+vim  knife.rb
+
+eg
+
+
+log_level        :info
+log_location     STDOUT
+node_name        'sid'
+client_key       '~/chef_repo/.chef/pemfile'
+validation_client_name    'accountsnow-validator'
+validation_key     '~/chef-repo/.chef/pemfile'
+chef-server-key    'https://3.80.235.94/organizations/accountsnow'
+syntax_check_cache_path  '~/cheg-repo/.chef/suntax_check_cache'
+cookbook_path [ '~/chef_repo/cookbooks' ]
+
+sudo knife ssl fetch
+
+

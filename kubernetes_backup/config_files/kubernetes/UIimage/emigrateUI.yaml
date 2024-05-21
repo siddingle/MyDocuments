@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: emigrateui
+  labels:
+    app: emigrateui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: emigrateui
+  template:
+    metadata:
+      labels:
+        app: emigrateui
+    spec:
+      containers:
+      - name: emigrateui
+        image: localhost:5000/emigrate-ui:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+
