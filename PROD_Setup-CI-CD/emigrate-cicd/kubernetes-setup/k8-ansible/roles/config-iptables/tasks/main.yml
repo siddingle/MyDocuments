@@ -1,0 +1,32 @@
+---
+- name: Net Filter
+  become: true
+  modprobe:
+    name: br_netfilter
+    state: present
+
+- name: Overlay Kernel Module
+  become: true
+  modprobe:
+    name: overlay
+    state: present
+- name: procps-ng installation
+  become: true
+  package: 
+    name: "{{ procps_package }}"
+    state: present
+  when: >
+    ansible_distribution != 'Debian'
+
+- name: iptables bridged traffic
+  become: true
+  sysctl:
+    name: "{{ item }}"
+    value: '1'
+    state: present
+  loop:
+    - net.bridge.bridge-nf-call-iptables
+    - net.bridge.bridge-nf-call-ip6tables
+    - net.ipv4.ip_forward 
+  when: >
+    ansible_distribution != 'Debian'

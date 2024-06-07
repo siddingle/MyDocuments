@@ -1,0 +1,79 @@
+---
+- name: Credentials Redhat
+  include_vars: ../../kubernetes/vars/vault.yml
+
+- name: Register and Auto attach username
+  become: true
+  community.general.redhat_subscription:
+    state: present
+    username: "{{ rhsm_username }}"
+    password: "{{ rhsm_password }}"
+    auto_attach: true
+
+- name: Install haproxy and keepalived
+  become: true
+  package:
+    name: 
+      - haproxy
+      - keepalived
+    state: present
+
+- name: Copy configuration script
+  become: true
+  template: 
+    src: haproxy-cfg.sh
+    dest: '{{remote_home_path}}/haproxy-cfg.sh'
+
+- name: HAproxy configuration
+  become: true
+  shell: |
+    chmod +x '{{remote_home_path}}/haproxy-cfg.sh'
+    '{{remote_home_path}}/haproxy-cfg.sh'
+
+- name: Copy Keepalived configuration file script in the first Haproxy server
+  template: 
+    src: keepalived1.sh
+    dest: '{{remote_home_path}}/keepalived1.sh'
+  delegate_to: "{{ groups['k8s_haproxy'][0] }}"
+
+- name: Keepalived configuration in the first HAproxy
+  become: true
+  shell: |
+    chmod +x '{{remote_home_path}}/keepalived1.sh'
+    '{{remote_home_path}}/keepalived1.sh'
+  delegate_to: "{{ groups['k8s_haproxy'][0] }}"
+
+- name: Copy Keepalived configuration file script in the first Haproxy server
+  template: 
+    src: keepalived2.sh
+    dest: '{{remote_home_path}}/keepalived2.sh'
+  delegate_to: "{{ groups['k8s_haproxy'][1] }}"
+
+- name: Keepalived configuration in the second HAproxy
+  become: true
+  shell: |
+    chmod +x '{{remote_home_path}}/keepalived2.sh'
+    '{{remote_home_path}}/keepalived2.sh'
+  delegate_to: "{{ groups['k8s_haproxy'][1] }}"
+
+- name: Swapoff and Selinux off
+  become: true
+  shell: |
+    swapoff -a
+    sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
+    setenforce 0
+    sed -i --follow-symlinks 's/SELINUX=enforcing/SELINUX=permissive/g' /etc/sysconfig/selinux
+
+- name: Disable Firewall
+  become: true
+  shell: |
+    systemctl stop firewalld
+    systemctl disable firewalld    
+
+- name: Restart and enable HAproxy and Keepalived
+  become: true
+  shell: |
+    systemctl restart haproxy
+    systemctl enable haproxy
+    systemctl restart keepalived
+    systemctl enable keepalived

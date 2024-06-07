@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: administrationservice
+  labels:
+    app: administrationservice
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: administrationservice
+  template:
+    metadata:
+      labels:
+        app: administrationservice
+    spec:
+      containers:
+      - name: administrationservice
+        image: nexus.mea-emigrate.com:9890/nexus/administrationservice:73
+#       imagePullPolicy: Always
+      imagePullSecrets: 
+      - name: emigrate
+        ports:
+        - containerPort: 8081

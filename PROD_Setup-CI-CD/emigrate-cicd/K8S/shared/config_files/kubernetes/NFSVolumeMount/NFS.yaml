@@ -1,0 +1,57 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata: 
+  name: nfs-pv
+spec:
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  capacity:
+    storage: 3Gi
+  volumeMode: Filesystem
+  nfs:
+    path: /workspace/shared/
+    server: 192.168.150.16   # NFS server IP address
+  storageClassName: nfs
+  mountOptions:
+    - hard
+    - nfsvers=4.1
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: task-pv-claim
+spec:
+  storageClassName: nfs
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 3Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: static-deployment1
+  namespace: default
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: static-deployment1
+  template:
+    metadata:
+      labels:
+        app: static-deployment1
+    spec:
+      containers:
+        - name: static-nfs-container1
+          image: nexus.mea-emigrate.com:9890/nexus/foreignrecruiterservice:154
+          volumeMounts:
+            - name: static-nfs-volume
+              mountPath: "/logs"
+      volumes:
+        - name: static-nfs-volume
+          persistentVolumeClaim: 
+            claimName: task-pv-claim
+

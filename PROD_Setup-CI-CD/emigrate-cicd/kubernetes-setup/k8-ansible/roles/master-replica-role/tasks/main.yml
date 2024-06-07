@@ -1,0 +1,39 @@
+---
+- name: Stop kubelet
+  become: true
+  shell: |
+     systemctl stop kubelet
+    
+- name: "Reset Cluster Primary Replicas"
+  become: true
+  command: 'kubeadm reset --force'
+ 
+- name: "Create kubernetes folders"
+  become: true
+  file:
+    path: /etc/kubernetes/pki/etcd
+    state: directory
+    mode: 0640
+    owner: root
+    group: root
+ 
+- name: "Push Kubernetes Master PKI files to master replicas"
+  become: true
+  copy: 
+    src: /tmp/kubeadm-ha/
+    dest: /etc/kubernetes/
+    owner: root
+    group: root
+    mode: preserve
+ 
+- name: Generate master join token
+  shell: kubeadm token create --print-join-command
+  register: kubeadm_join_cmd
+  delegate_to: "{{groups['k8s-master'][0]}}" 
+
+- set_fact:
+    kubeadm_join: "{{ kubeadm_join_cmd.stdout }}"
+
+- name: Join Master replicas to cluster
+  become: true
+  shell: "{{ kubeadm_join }} --control-plane"

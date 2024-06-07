@@ -1,0 +1,7 @@
+---
+- name: Detach Subbscription
+  become: true
+  community.general.redhat_subscription:
+    state: absent
+    username: "{{ rhsm_username }}"
+    password: "{{ rhsm_password }}"

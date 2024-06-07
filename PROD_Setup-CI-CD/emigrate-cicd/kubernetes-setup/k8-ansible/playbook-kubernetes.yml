@@ -1,0 +1,21 @@
+---
+- hosts: k8s-master
+  name: Setting up hosts values
+  tasks:
+    - name: Running kubernete Role
+      include_role:
+        name: update-hosts
+
+- hosts: k8s-master
+  name: Setting up kubernetes master node
+  tasks:
+    - name: Running kubernete Role
+      include_role:
+        name: kubernetes
+
+- hosts: k8s-master-replicas
+  name: Join Replica node
+  tasks:
+    - name: Running kubernete Role
+      include_role:
+        name: master-replica-role

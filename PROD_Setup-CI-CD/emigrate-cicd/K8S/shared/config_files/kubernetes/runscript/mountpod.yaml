@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name:  gate
+  labels:
+    app: gate
+spec:
+  replicas: 1  # Set the number of desired replicas
+  selector:
+    matchLabels:
+      app: gate
+  template:
+    metadata:
+      labels:
+        app: gate
+    spec:
+      containers:
+      - name:  gate
+        image: nexus.mea-emigrate.com:9890/nexus/foreignrecruiterservice:154
+        ports:
+        - containerPort: 9080  # Set the container port
+        volumeMounts:
+        - name: data-volume
+          mountPath: "/emigrate"
+        volumes:
+        - name: data-volume
+          hostPath:
+          path: "/workspace" 
+        resources:
+          limits:
+            cpu: 500
+          requests:
+            cpu: 100
+      imagePullSecrets:
+      - name: emigrate

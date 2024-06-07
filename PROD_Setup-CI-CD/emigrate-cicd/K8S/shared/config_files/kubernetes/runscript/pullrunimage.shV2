@@ -1,0 +1,56 @@
+#!/bin/bash
+
+source data.properties
+
+service="$1"
+port="$2"
+buildn="$3"
+
+
+commands="
+  docker rmi -f localhost:5000/${service}:latest
+docker login ${DC_NEXUS_URL} -u ${USER} -p ${PASSWORD}
+
+docker pull ${DC_NEXUS_PULL_URL}/${service}:${buildn}
+docker tag  ${DC_NEXUS_PULL_URL}/${service}:${buildn}  localhost:5000/${service}:latest
+docker push localhost:5000/${service}:latest
+docker rmi -f ${DC_NEXUS_PULL_URL}/${service}:${buildn}
+"
+echo "Running Script on NODE1"
+ssh -t ${WORKERNODE1} "$commands"
+
+echo "Running Script on NODE2"
+ssh -t ${WORKERNODE2}  "$commands"
+
+kubectl delete deploy ${service}
+while read -r command; do
+  eval "$command"
+done <<< "$commands"
+
+
+cat <<EOF | kubectl apply -f -
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ${service}
+  labels:
+    app: ${service}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ${service}
+  template:
+    metadata:
+      labels:
+        app: ${service}
+    spec:
+      containers:
+      - name: ${service}
+        image: localhost:5000/${service}
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: ${port}
+
+
+EOF
