@@ -1,0 +1,60 @@
+pipeline {
+    agent none
+
+    stages {
+        stage('Parallel Docker Cleanup') {
+            parallel {
+                stage('Cleanup on Node 1') {
+                    agent { label 'node-1' }
+                    steps {
+                        script {
+                            try {
+                                // Remove all stopped containers
+                                sh 'docker container prune -f'
+                                
+                                // Remove all unused images
+                                sh 'docker image prune -a -f'
+                                
+                                // Remove all unused networks
+                                sh 'docker network prune -f'
+                                
+                                // Remove all unused volumes
+                                sh 'docker volume prune -f'
+                                
+                                // Remove all build cache
+                                sh 'docker builder prune -a -f'
+                            } catch (Exception e) {
+                                echo "An error occurred during the Docker cleanup on Node 1: ${e}"
+                            }
+                        }
+                    }
+                }
+                stage('Cleanup on Node 2') {
+                    agent { label 'node-2' }
+                    steps {
+                        script {
+                            try {
+                                // Remove all stopped containers
+                                sh 'docker container prune -f'
+                                
+                                // Remove all unused images
+                                sh 'docker image prune -a -f'
+                                
+                                // Remove all unused networks
+                                sh 'docker network prune -f'
+                                
+                                // Remove all unused volumes
+                                sh 'docker volume prune -f'
+                                
+                                // Remove all build cache
+                                sh 'docker builder prune -a -f'
+                            } catch (Exception e) {
+                                echo "An error occurred during the Docker cleanup on Node 2: ${e}"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
